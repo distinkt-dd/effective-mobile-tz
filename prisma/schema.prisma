@@ -12,7 +12,7 @@ model User {
   firstName  String         @map("first_name")
   lastName   String         @map("last_name")
   middleName String         @map("middle_name")
-  birthday   DateTime
+  birthday   Date
   email      String         @unique
   password   String
   role       EnumUserRoles  @default(USER)
