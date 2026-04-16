@@ -19,7 +19,7 @@ app.get('/health', (req, res) => {
 	res.status(200).json({
 		status: 'OK',
 		timestamp: new Date().toISOString(),
-		service: 'effective-mobile',
+		service: 'effective-mobile'
 	})
 })
 
@@ -29,7 +29,7 @@ app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
 	console.error(err.stack)
 	res.status(500).json({
 		message: 'Что то пошло не так!',
-		error: err.message,
+		error: err.message
 	})
 })
 
