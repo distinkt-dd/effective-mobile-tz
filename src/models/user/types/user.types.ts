@@ -1,14 +1,14 @@
 import { Request } from 'express'
 import {
 	EnumUserRoles,
-	EnumUserStatus,
+	EnumUserStatus
 } from '../../../../generated/prisma/enums'
 
 export type TUser = {
 	id: string
 	firstName: string
 	lastName: string
-	middleName?: string | null
+	middleName: string | null
 	birthday: Date
 	email: string
 	password: string
@@ -30,7 +30,7 @@ export type TRegisterUser = Pick<
 
 export type TLoginUser = Pick<TUser, 'email' | 'password'>
 
-type TUserRequest = Pick<
+export type TUserRequest = Pick<
 	TUser,
 	'id' | 'email' | 'firstName' | 'lastName' | 'role' | 'status'
 >

@@ -12,8 +12,8 @@ export const validate = (schema: ZodSchema) => {
 					success: false,
 					errors: err.issues.map(err => ({
 						field: err.path.join('.'),
-						message: err.message,
-					})),
+						message: err.message
+					}))
 				})
 			}
 			next(err)

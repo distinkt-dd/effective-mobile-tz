@@ -5,8 +5,22 @@ import passport from 'passport'
 import {
 	ExtractJwt,
 	Strategy as JwtStrategy,
-	StrategyOptions,
+	StrategyOptions
 } from 'passport-jwt'
+import { EnumUserRoles, EnumUserStatus } from '../../generated/prisma/enums'
+
+declare global {
+	namespace Express {
+		interface User {
+			id: string
+			email: string
+			firstName: string
+			lastName: string
+			role: EnumUserRoles
+			status: EnumUserStatus
+		}
+	}
+}
 
 const userService = new UserService()
 
@@ -14,13 +28,13 @@ const options: StrategyOptions = {
 	jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
 	secretOrKey:
 		process.env.JWT_SECRET || 'KdTTKNigGldokK6A9HLvaB8LG44F3rifUkssODdd3tr',
-	ignoreExpiration: false,
+	ignoreExpiration: false
 }
 
 export interface JwtPayload {
 	id: string
 	email: string
-	role: string
+	role: EnumUserRoles
 }
 
 passport.use(
@@ -32,11 +46,22 @@ passport.use(
 				return done(null, false, { message: 'Пользователь не найден' })
 			}
 
-			return done(null, user)
+			if (user.banAt) {
+				return done(null, false, { message: 'Аккаунт заблокирован' })
+			}
+
+			return done(null, {
+				id: user.id,
+				email: user.email,
+				firstName: user.firstName,
+				lastName: user.lastName,
+				role: user.role as EnumUserRoles,
+				status: user.status as EnumUserStatus
+			})
 		} catch (error) {
 			return done(error, false)
 		}
-	}),
+	})
 )
 
 export const authenticateJWT = passport.authenticate('jwt', { session: false })
@@ -49,7 +74,7 @@ export const requireRole = (allowedRoles: String[]) => {
 
 		if (!allowedRoles.includes(req.user.role)) {
 			return res.status(403).json({
-				error: `Недостаточно прав для выполнения действия!`,
+				error: `Недостаточно прав для выполнения действия!`
 			})
 		}
 
@@ -60,16 +85,17 @@ export const requireRole = (allowedRoles: String[]) => {
 export const requireActive = (
 	req: IAuthRequestUser,
 	res: Response,
-	next: NextFunction,
+	next: NextFunction
 ) => {
 	if (!req.user) {
 		return res.status(401).json({ error: 'Пользователь не авторизован' })
 	}
 
 	if (req.user.status !== 'ACTIVE') {
-		return res
-			.status(403)
-			.json({ error: 'Аккаунт не активен. Обратитесь к администратору.' })
+		return res.status(403).json({
+			error:
+				'Аккаунт не активен или заблокирован. Активируйте через почту или обратитесь к администратору'
+		})
 	}
 
 	next()

@@ -9,7 +9,7 @@ import { TUserCreateDto, TUserLoginDto } from './dto/user.dto'
 export class UserService {
 	async findUserByEmail(email: string) {
 		return prisma.user.findUnique({
-			where: { email },
+			where: { email }
 		})
 	}
 
@@ -25,12 +25,12 @@ export class UserService {
 		const data: TRegisterUser = {
 			firstName: dto.firstName,
 			lastName: dto.lastName,
-			middleName: dto.middleName ?? null,
+			middleName: dto.middleName || null,
 			birthday: dto.birthday,
 			email: dto.email,
 			password: hashedPassword,
 			status: EnumUserStatus.INACTIVE,
-			role: EnumUserRoles.USER,
+			role: EnumUserRoles.USER
 		}
 
 		const newUser = await prisma.user.create({
@@ -44,12 +44,12 @@ export class UserService {
 				email: true,
 				role: true,
 				status: true,
-				createAt: true,
-			},
+				createAt: true
+			}
 		})
 		return {
 			user: newUser,
-			message: 'Регистрация успешна. Подтвердите email для активации аккаунта.',
+			message: 'Регистрация успешна. Подтвердите email для активации аккаунта.'
 		}
 	}
 
@@ -66,24 +66,24 @@ export class UserService {
 			throw new Error('Неверный email или пароль')
 		}
 
-		if (user.status === EnumUserStatus.INACTIVE) {
-			throw new Error('Аккаунт не активирован! Подтвердите email!')
-		}
-
 		if (user.banAt && user.banAt <= new Date()) {
 			throw new Error('Аккаунт заблокирован. Обратитесь к администратору.')
+		}
+
+		if (user.status === EnumUserStatus.INACTIVE) {
+			throw new Error('Аккаунт не активирован! Подтвердите email!')
 		}
 
 		const payload = {
 			id: user.id,
 			email: user.email,
-			role: user.role,
+			role: user.role
 		}
 
 		const token = jwt.sign(
 			payload,
 			process.env.JWT_SECRET || 'KdTTKNigGldokK6A9HLvaB8LG44F3rifUkssODdd3tr',
-			{ expiresIn: '7d' },
+			{ expiresIn: '7d' }
 		)
 
 		const { password, ...safeUser } = user
@@ -91,14 +91,15 @@ export class UserService {
 		return {
 			user: safeUser,
 			token,
-			message: 'Вход выполнен успешно',
+			message: 'Вход выполнен успешно'
 		}
 	}
 
 	async getUserById(
 		userId: string,
+		ownerRole: string,
 		currentUserId: string,
-		currentUserRole: string,
+		currentUserRole: string
 	) {
 		const user = await prisma.user.findUnique({
 			where: { id: userId },
@@ -113,15 +114,15 @@ export class UserService {
 				status: true,
 				createAt: true,
 				updateAt: true,
-				banAt: true,
-			},
+				banAt: true
+			}
 		})
 
 		if (!user) {
 			throw new Error('Пользователь не найден')
 		}
 
-		if (currentUserRole !== 'ADMIN' && currentUserId !== userId) {
+		if (currentUserRole !== ownerRole && currentUserId !== userId) {
 			throw new Error('Доступ запрещен. Вы можете просматривать только себя.')
 		}
 
@@ -141,11 +142,11 @@ export class UserService {
 				status: true,
 				createAt: true,
 				updateAt: true,
-				banAt: true,
+				banAt: true
 			},
 			orderBy: {
-				createAt: 'desc',
-			},
+				createAt: 'desc'
+			}
 		})
 
 		return users
@@ -153,29 +154,26 @@ export class UserService {
 
 	async blockUser(
 		userIdToBlock: string,
+		ownerRole: string,
 		currentUserId: string,
-		currentUserRole: string,
+		currentUserRole: string
 	) {
 		const canBlock =
-			currentUserRole === 'ADMIN' || currentUserId === userIdToBlock
+			currentUserRole === ownerRole || currentUserId === userIdToBlock
 
 		if (!canBlock) {
 			throw new Error('Доступ запрещен. Вы можете заблокировать только себя.')
 		}
 
 		const userToBlock = await prisma.user.findUnique({
-			where: { id: userIdToBlock },
+			where: { id: userIdToBlock }
 		})
 
 		if (!userToBlock) {
 			throw new Error('Пользователь не найден')
 		}
 
-		if (userToBlock.role === 'ADMIN' && currentUserRole !== 'ADMIN') {
-			throw new Error('Нельзя заблокировать администратора')
-		}
-
-		if (userToBlock.status === 'INACTIVE') {
+		if (userToBlock.banAt !== null) {
 			throw new Error('Пользователь уже заблокирован')
 		}
 
@@ -184,7 +182,7 @@ export class UserService {
 			data: {
 				status: EnumUserStatus.INACTIVE,
 				banAt: new Date(),
-				updateAt: new Date(),
+				updateAt: new Date()
 			},
 			select: {
 				id: true,
@@ -193,8 +191,8 @@ export class UserService {
 				email: true,
 				role: true,
 				status: true,
-				banAt: true,
-			},
+				banAt: true
+			}
 		})
 
 		const message =
@@ -204,26 +202,30 @@ export class UserService {
 
 		return {
 			user: blockedUser,
-			message,
+			message
 		}
 	}
 
-	async unblockUser(userId: string, currentUserRole: string) {
-		if (currentUserRole !== 'ADMIN') {
+	async unblockUser(
+		userId: string,
+		ownerRole: string,
+		currentUserRole: string
+	) {
+		if (currentUserRole !== ownerRole) {
 			throw new Error(
-				'Доступ запрещен. Только администратор может разблокировать пользователей.',
+				'Доступа нет. У вас не достаточно прав для разблокировки пользователя!'
 			)
 		}
 
 		const user = await prisma.user.findUnique({
-			where: { id: userId },
+			where: { id: userId }
 		})
 
 		if (!user) {
 			throw new Error('Пользователь не найден')
 		}
 
-		if (user.status === 'ACTIVE') {
+		if (user.banAt === null) {
 			throw new Error('Пользователь не заблокирован')
 		}
 
@@ -232,7 +234,7 @@ export class UserService {
 			data: {
 				status: EnumUserStatus.ACTIVE,
 				banAt: null,
-				updateAt: new Date(),
+				updateAt: new Date()
 			},
 			select: {
 				id: true,
@@ -240,13 +242,13 @@ export class UserService {
 				lastName: true,
 				email: true,
 				role: true,
-				status: true,
-			},
+				status: true
+			}
 		})
 
 		return {
 			user: unblockedUser,
-			message: 'Пользователь успешно разблокирован',
+			message: 'Пользователь успешно разблокирован'
 		}
 	}
 
@@ -263,7 +265,8 @@ export class UserService {
 				role: true,
 				status: true,
 				createAt: true,
-			},
+				banAt: true
+			}
 		})
 	}
 }
