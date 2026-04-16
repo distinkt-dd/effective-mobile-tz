@@ -5,7 +5,7 @@ import passport from 'passport'
 import {
 	ExtractJwt,
 	Strategy as JwtStrategy,
-	StrategyOptions
+	StrategyOptions,
 } from 'passport-jwt'
 
 const userService = new UserService()
@@ -14,7 +14,7 @@ const options: StrategyOptions = {
 	jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
 	secretOrKey:
 		process.env.JWT_SECRET || 'KdTTKNigGldokK6A9HLvaB8LG44F3rifUkssODdd3tr',
-	ignoreExpiration: false
+	ignoreExpiration: false,
 }
 
 export interface JwtPayload {
@@ -36,7 +36,7 @@ passport.use(
 		} catch (error) {
 			return done(error, false)
 		}
-	})
+	}),
 )
 
 export const authenticateJWT = passport.authenticate('jwt', { session: false })
@@ -49,7 +49,7 @@ export const requireRole = (allowedRoles: String[]) => {
 
 		if (!allowedRoles.includes(req.user.role)) {
 			return res.status(403).json({
-				error: `Недостаточно прав для выполнения действия!`
+				error: `Недостаточно прав для выполнения действия!`,
 			})
 		}
 
@@ -60,7 +60,7 @@ export const requireRole = (allowedRoles: String[]) => {
 export const requireActive = (
 	req: IAuthRequestUser,
 	res: Response,
-	next: NextFunction
+	next: NextFunction,
 ) => {
 	if (!req.user) {
 		return res.status(401).json({ error: 'Пользователь не авторизован' })

@@ -11,8 +11,8 @@ model User {
   id         String         @id @default(cuid())
   firstName  String         @map("first_name")
   lastName   String         @map("last_name")
-  middleName String         @map("middle_name")
-  birthday   Date
+  middleName String?        @map("middle_name")
+  birthday   DateTime
   email      String         @unique
   password   String
   role       EnumUserRoles  @default(USER)
